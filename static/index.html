@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Real‑Time Data Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f7f7f7; }
+    .section { margin: 20px 0; background: #fff; padding: 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    h1 { margin-top: 0; color: #333; }
+    h2 { margin-top: 0; cursor: pointer; }
+    ul { list-style: none; padding-left: 0; }
+    .button { margin-bottom: 10px; padding: 6px 12px; font-size: 14px; background: #007bff; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Real‑Time Data Dashboard</h1>
+
+  <div class="section" id="quakes-section">
+    <h2 onclick="refreshData()">Earthquakes (Past Hour)</h2>
+    <button class="button" onclick="refreshData()">Refresh Now</button>
+    <ul id="earthquake-list">Waiting for data…</ul>
+  </div>
+
+  <div class="section" id="weather-section">
+    <h2 onclick="refreshData()">Weather (Salt Lake City)</h2>
+    <button class="button" onclick="refreshData()">Refresh Now</button>
+    <div id="weather">Waiting for data…</div>
+  </div>
+
+  <div class="section" id="crypto-section">
+    <h2 onclick="refreshData()">Bitcoin Price (USD)</h2>
+    <button class="button" onclick="refreshData()">Refresh Now</button>
+    <div id="crypto">Waiting for data…</div>
+  </div>
+
+  <script>
+    let socket;
+
+    function updateDisplay(data) {
+      const eqList = document.getElementById('earthquake-list');
+      eqList.innerHTML = '';
+      if (data.earthquakes && data.earthquakes.length) {
+        data.earthquakes.forEach(item => {
+          const li = document.createElement('li');
+          li.textContent = item;
+          eqList.appendChild(li);
+        });
+      } else {
+        eqList.textContent = 'No earthquakes in the last hour.';
+      }
+
+      const weatherDiv = document.getElementById('weather');
+      if (data.weather && data.weather.temp_c) {
+        weatherDiv.textContent = `${data.weather.desc}, ${data.weather.temp_c}°C, humidity ${data.weather.humidity}%`;
+      } else {
+        weatherDiv.textContent = 'Weather data unavailable.';
+      }
+
+      const cryptoDiv = document.getElementById('crypto');
+      if (data.crypto && data.crypto.rate) {
+        cryptoDiv.textContent = `BTC: $${data.crypto.rate} (updated ${data.crypto.updated})`;
+      } else {
+        cryptoDiv.textContent = 'Bitcoin price unavailable.';
+      }
+    }
+
+    async function refreshData() {
+      try {
+        const response = await fetch('/data');
+        const data = await response.json();
+        updateDisplay(data);
+      } catch (err) {
+        console.error('Error refreshing data:', err);
+      }
+    }
+
+    function connectWebSocket() {
+      const wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
+      socket = new WebSocket(wsUrl);
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        updateDisplay(data);
+      };
+      socket.onclose = () => {
+        setTimeout(connectWebSocket, 5000);
+      };
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      connectWebSocket();
+      refreshData();
+    });
+  </script>
+</body>
+</html>
