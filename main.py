@@ -5,6 +5,8 @@ from pathlib import Path
 import asyncio
 import httpx
 
+
+
 app = FastAPI()
 
 # Serve static files
@@ -39,6 +41,7 @@ async def fetch_feeds():
                         quakes.append(f"M{mag} – {place}")
                     data_store["earthquakes"] = quakes
 
+                
                 # Fetch weather feed (Salt Lake City by default)
                 weather_resp = await client.get("https://wttr.in/Salt%20Lake%20City?format=j1")
                 if weather_resp.status_code == 200:
@@ -70,6 +73,7 @@ async def fetch_feeds():
             # Log network failures and continue
             print(f"Error fetching feeds: {exc}")
         await asyncio.sleep(60)
+        
 
 @app.on_event("startup")
 async def start_fetcher():
@@ -83,6 +87,7 @@ async def get_index():
     return HTMLResponse(index_file.read_text())
 
 @app.get("/data")
+
 async def get_current_data():
     """Return the current data without waiting for the WebSocket broadcast."""
     return JSONResponse(data_store)
